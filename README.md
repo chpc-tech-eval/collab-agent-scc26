@@ -1,257 +1,310 @@
-# Human–Agent Collaboration — Discord & Telegram Operations Gateway
+Human–Agent Collaboration — Discord Operations Gateway
+======================================================
 
-**Repository:** `collab-agent-scc26`  
-**Recommended long name:** **Human–Agent Collaboration: Discord & Telegram Operations Gateway**  
-**Duration:** 10-week core, 12 weeks with stretch/handover
+Welcome. This repository is one of the CHPC student engineering projects for the 2026 SCC follow-on programme. You will spend the first four weeks building the same small cloud-native research platform as the other teams, then use that platform for your team's project-specific experiment.
 
-## Project summary
+The project is intentionally ambitious, but the path is deliberately staged. **Do not try to understand every technology before you begin.** Build one layer, validate it, understand what it owns, then continue.
 
-This project studies how researchers, students and operators can collaborate with platform agents through tools they already use—Discord and Telegram—without turning a chat bot into a privileged back door.
+> [!IMPORTANT]
+> The objective is not to copy commands until something turns green. By the end, every team member should be able to explain the full platform at a useful high level, even though each person has a primary role.
 
-Students build two external **liaison adapters** that translate chat interactions into authenticated, policy-bounded tasks for `agent-control-plane`. Hermes provides the conversational/runtime layer, while the control plane owns task authorisation, evidence, run history and future delegation. `quantum-platform` remains the authoritative identity/application surface.
+# Project question
 
-The central engineering idea is simple:
+> Can a familiar chat interface submit authenticated, policy-bounded agent tasks while preserving identity, auditability, evidence and durable results?
 
-> Chat systems are user interfaces. They are not the security boundary and they are not the system of record.
+# Start here
 
-## Core question
+Work through the common platform weeks in order:
 
-> Can Discord and Telegram provide a useful conversational operations/research interface while preserving identity, authorisation, auditability, least privilege and reproducibility?
+1. [Week 1 — OpenStack → Terraform → Ansible](week1/README.md)
+2. [Week 2 — Kubernetes Substrate & GitOps](week2/README.md)
+3. [Week 3 — Observability, Security & Quantum Platform](week3/README.md)
+4. [Week 4 — Agent Control Plane & Hermes](week4/README.md)
+5. **Week 5 — project-specific implementation**
+6. **Week 6 — technical journal article, poster and reproducibility rebuild**
+7. **Week 7 — consolidation, cleanup and upstream handover**
 
-## Primary integrations
+The upstream implementation/reference repositories are:
 
-- `agent-control-plane` — task API, policy boundary, run/evidence history;
-- Hermes — conversational/runtime adapter;
-- `quantum-platform` — user identity, administrator/researcher views and account linking;
-- `infra-hpc-qc-k8s` — deployment, secrets, network policy and observability;
-- `quantum-workflows` — read-only workflow status and future approved submission contracts.
+- [`nyameko/infra-hpc-qc-k8s`](https://github.com/nyameko/infra-hpc-qc-k8s) — OpenStack/Terraform, Ansible, Kubernetes, GitOps, storage, observability and security deployment;
+- [`nyameko/quantum-platform`](https://github.com/nyameko/quantum-platform) — Astro/Django/PostgreSQL user-facing platform;
+- [`nyameko/agent-control-plane`](https://github.com/nyameko/agent-control-plane) — bounded agent task API, persistent history and Hermes worker;
+- [`chpc-tech-eval/scc`](https://github.com/chpc-tech-eval/scc) — teaching/tutorial style and HPC learning lineage.
 
-## Learning outcomes
+These repositories are active. Record the exact commit SHA you use each week. When a tested baseline is announced, keep the whole team on that baseline until instructed otherwise.
 
-Students should be able to:
+# Programme cadence
 
-- build production-style webhook/bot adapters;
-- normalise different messaging APIs into a common message envelope;
-- separate authentication from authorisation;
-- design account-linking flows without trusting chat display names;
-- persist task/run/audit history outside the chat platform;
-- implement rate limiting, replay protection and idempotency;
-- design safe conversational commands that map to fixed backend capabilities;
-- surface progress and errors asynchronously through message threads/replies;
-- compare Discord and Telegram operational ergonomics;
-- document privacy and retention implications.
+The current plan is a **six-week core project** followed by **Week 7 consolidation**. Team captains should coordinate the Friday working session, tentatively **14:00–18:00**, through the programme Discord. The current expected infrastructure access window runs through **15 December 2026**; watch GitHub/Discord for any operational changes.
 
-## Scope
+Discord: https://discord.gg/PNMknPydJ
 
-### Must deliver
+# What you will build
 
-1. A common channel-adapter interface.
-2. A Discord adapter.
-3. A Telegram adapter.
-4. A normalised inbound message/event schema.
-5. An account-linking design that maps external channel identities to platform identities without relying on usernames alone.
-6. At least four safe capabilities, all read-only in the core project. Suggested examples:
-   - platform health summary;
-   - Prometheus diagnostic summary;
-   - Kubernetes application status;
-   - recent agent task/run history;
-   - selected workflow status.
-7. Persistent audit/task history in `agent-control-plane`.
-8. Rate limits, duplicate-event handling and basic abuse protection.
-9. Structured metrics/logging for adapter health and task latency.
-10. A demonstration that the same logical request works through both Discord and Telegram.
+The common platform is approximately:
 
-### Should deliver
+| Role | vCPU | RAM | Storage | Purpose |
+| --- | ---: | ---: | ---: | --- |
+| `edge-01` | 4 | 10 GiB | 50 GiB | WireGuard, Pi-hole/DNS, nftables, Wazuh Manager, Suricata |
+| `api-lb-01` | 2 | 4 GiB | 25 GiB | HAProxy and stable Kubernetes API endpoint |
+| `k8s-cp-01` | 4 | 8 GiB | 30 GiB | Kubernetes control plane |
+| `k8s-worker-01` | 8 | 16 GiB | 40 GiB | platform/workbench/project workloads |
+| `k8s-worker-02` | 8 | 16 GiB | 40 GiB | platform/workbench/project workloads |
+| **POC total** | **26** | **54 GiB** | **185 GiB** | excluding separately allocated GPU systems |
 
-- threaded/reply-aware conversations;
-- per-channel formatting adapters;
-- “show evidence” command that links an answer back to bounded source evidence;
-- administrator visibility in `quantum-platform`;
-- graceful fallback if Hermes/inference is unavailable;
-- a privacy/retention matrix comparing what is stored by the platform versus the external chat provider.
+Your team may adjust the final design within the project quota, but every change needs a technical reason.
 
-### Stretch
-
-- explicit human approval flow for one non-destructive mutation;
-- workflow submission request that creates a pending task rather than directly launching compute;
-- role-aware channel policies;
-- handoff between small/fast and large/reasoning models through control-plane routing experiments.
-
-## Non-goals
-
-- storing platform truth only in Discord/Telegram history;
-- granting bot tokens Kubernetes/Slurm/OpenStack administrator credentials;
-- executing arbitrary shell commands from chat;
-- inferring platform roles from Discord server roles or Telegram usernames without an explicit mapping policy;
-- allowing a language model to bypass application authorisation.
-
-## Architecture
+## Common architecture
 
 ```text
- Discord user                       Telegram user
-      │                                  │
-      ▼                                  ▼
-Discord liaison                     Telegram liaison
-      │                                  │
-      └────────── normalized event ──────┘
-                         │
-                 identity link check
-                         │
-                         ▼
-                agent-control-plane
-               policy + task + audit
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-        bounded diagnostics      Hermes runtime
-              │                     │
-              └──────── evidence ───┘
-                         │
-                         ▼
-                 formatted response
-                         │
-            Discord / Telegram reply
-
- quantum-platform remains authoritative for platform identity and admin views.
+                              Your workstation
+                                    │
+                                    │ WireGuard / SSH
+                                    ▼
+                              ┌───────────┐
+                              │  edge-01  │
+                              │ VPN / DNS │
+                              │ security  │
+                              └─────┬─────┘
+                                    │
+                  ┌─────────────────┴──────────────────┐
+                  │                                    │
+                  ▼                                    ▼
+            ┌───────────┐                       ┌─────────────┐
+            │ api-lb-01 │                       │ Kubernetes  │
+            │  HAProxy  │                       │   cluster   │
+            └─────┬─────┘                       └──────┬──────┘
+                  │                                    │
+                  │ :6443                       ┌──────┴──────┐
+                  └────────────────────────────►│ k8s-cp-01  │
+                                               └──────┬──────┘
+                                                      │
+                                             ┌────────┴────────┐
+                                             ▼                 ▼
+                                      ┌─────────────┐   ┌─────────────┐
+                                      │k8s-worker-01│   │k8s-worker-02│
+                                      └─────────────┘   └─────────────┘
 ```
 
-## Common message envelope
 
-Students should define and version a transport-neutral envelope such as:
+A100 and H200 access is **separate** from the Sebowa OpenStack project. The normal design is for small services/agents in Kubernetes to call approved model endpoints remotely.
 
-```json
-{
-  "provider": "discord|telegram",
-  "external_user_id": "opaque-provider-id",
-  "external_conversation_id": "opaque-provider-id",
-  "external_message_id": "opaque-provider-id",
-  "received_at": "RFC3339 timestamp",
-  "text": "request text",
-  "reply_to": "optional external message id"
-}
+# Why the first four weeks are shared
+
+All four projects depend on the same engineering foundations. The common build teaches the control boundaries once:
+
+```text
+Terraform       → OpenStack infrastructure
+Ansible         → Linux host configuration/bootstrap
+kubeadm         → Kubernetes bootstrap
+Cilium          → Kubernetes networking/policy
+Cinder CSI      → Kubernetes persistent block storage
+Argo CD         → long-lived Kubernetes application state
+Sealed Secrets  → encrypted secret material in GitOps
+Traefik         → application ingress
+Prometheus      → metrics collection
+Grafana         → metrics visualisation
+Wazuh           → host/security event evidence
+Suricata        → network IDS evidence
+Quantum Platform→ user identity/product surface
+Agent Control Plane → bounded agent tasks/history/policy
+Hermes          → agent runtime/harness
+A100/H200 model server → inference
 ```
 
-The envelope should not pretend that an external user ID is itself sufficient authorisation. It is an input to a platform-controlled identity mapping.
+If you do not know a term yet, that is expected. The weekly tutorials introduce it when you need it.
 
-## Repository layout
+# Six-week core + Week 7 consolidation
+
+| Week | Common goal | Exit condition |
+| --- | --- | --- |
+| 1 | OpenStack → Terraform → Ansible | five-node POC reproducibly deployed and bootstrapped |
+| 2 | Kubernetes substrate + GitOps | 1 CP + 2 workers, Cilium, Cinder, Argo, Sealed Secrets, Traefik/TLS |
+| 3 | Observability/security + Quantum Platform | Prometheus/Grafana, Wazuh/Suricata evidence and working browser login |
+| 4 | ACP + Hermes | portal → ACP → evidence → Hermes → remote model round trip |
+| 5 | Project specialisation | project-specific MVP demonstrated on the common platform |
+| 6 | Report + reproducibility | 2-page technical journal article, poster and tear-down/rebuild evidence |
+| 7 | Consolidation | cleanup, final fixes, documented handover and upstream-ready contributions |
+
+### Week 5 — Discord liaison MVP
+
+Your goal is deliberately small: make **one Discord path** work end-to-end before adding more providers or capabilities. Discord is a user interface, not the security boundary and not the system of record.
+
+Target flow:
+
+```text
+Discord message
+      ↓
+Discord liaison / adapter
+      ↓
+explicit identity mapping
+      ↓
+authenticated ACP task
+      ↓
+PostgreSQL task/run/evidence history
+      ↓
+Hermes / approved remote model
+      ↓
+Discord reply
+```
+
+Required Week 5 outcomes:
+
+- one working Discord bot/adapter;
+- one safe, fixed ACP capability;
+- explicit mapping between Discord identity and platform identity;
+- duplicate/retry handling for at least one message identifier;
+- durable task/result history outside Discord;
+- proof that deleting/restarting the liaison or Hermes worker does not erase the canonical ACP result;
+- denial of an unlinked or unauthorised request.
+
+Telegram, richer conversations and mutations are stretch work only after this vertical slice is reliable.
+
+
+# Week 6 — report, poster and reproducibility
+
+Your final Week 6 assessment is **not** "our environment has been alive for six weeks." You must demonstrate that the project is reproducible.
+
+At minimum:
+
+1. preserve the required state/results and record the exact source/image revisions;
+2. tear down the disposable infrastructure using the documented method;
+3. recreate the common platform from your Terraform/Ansible/GitOps sources and protected environment inputs;
+4. rerun the core acceptance checks;
+5. rerun the project-specific MVP or a representative reproducibility test;
+6. record failures, manual exceptions and time-consuming steps honestly.
+
+You will prepare:
+
+- a **two-page technical journal-style article**;
+- a **project poster**;
+- a short live demonstration;
+- reproducibility evidence.
+
+The article/poster should answer: problem, architecture, method, evidence/results, limitations, lessons learned and future work.
+
+# Week 7 — consolidation
+
+Use the consolidation week to:
+
+- fix documentation discovered to be incomplete during the rebuild;
+- clean secrets/test credentials and stale resources;
+- turn useful project changes into clear commits/PRs;
+- identify improvements that belong upstream in `infra-hpc-qc-k8s`, `quantum-platform` or `agent-control-plane`;
+- freeze final results and architecture diagrams;
+- make the repository understandable to the next student who did not attend your meetings.
+
+# Team roles
+
+There are four students per team. Use the following primary ownership areas to parallelise the work:
+
+| Role | Primary responsibility |
+| --- | --- |
+| **Infrastructure deployment** | OpenStack, Terraform, networking, security groups, DNS/firewall design |
+| **Cloud automation** | Ansible, Kubernetes, Cilium, Cinder |
+| **CI/CD, telemetry & security** | Argo CD, CI, Prometheus/Grafana, Wazuh, Suricata |
+| **Frontend, agents & specialisation** | Astro/Quantum Platform, ACP, Hermes and project-specific implementation |
+
+These are **not silos**. Rotate ownership after major milestones and review one another's work. Any team member may be asked to explain any part of the final architecture.
+
+# Working method
+
+Use the same pattern every week:
+
+```text
+READ
+  ↓
+DESIGN
+  ↓
+DEPLOY
+  ↓
+VERIFY
+  ↓
+BREAK / OBSERVE
+  ↓
+FIX
+  ↓
+DOCUMENT
+  ↓
+COMMIT
+```
+
+A command completing without an error is not proof that the system works. Prefer end-to-end acceptance evidence.
+
+> [!TIP]
+> **Show the working system, not slides about the working system.** Screenshots and diagrams are useful evidence, but they do not replace a live command, request, query or reproducible run.
+
+# Git workflow
+
+Keep changes small and reviewable. A simple student flow is:
+
+```text
+feature/<short-topic>
+        ↓ Pull Request
+      main
+```
+
+Use issues for tasks/bugs and pull requests for reviewed changes. Do not store secrets in issue comments, Discord, screenshots or Git history.
+
+Before pushing:
+
+```bash
+git status
+git diff --cached
+```
+
+Commit messages should say what changed and why.
+
+# Secrets and safety
+
+Never commit:
+
+- OpenStack credentials/application-credential secrets;
+- private SSH or WireGuard keys;
+- kubeconfigs;
+- plaintext Kubernetes Secrets;
+- database passwords;
+- model API keys;
+- Discord bot tokens;
+- TLS private keys.
+
+Use the approved private-variable/Vault/Sealed Secret workflow described in the weekly guides.
+
+A useful project layout after the common deployment is:
 
 ```text
 collab-agent-scc26/
 ├── README.md
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── IDENTITY-LINKING.md
-│   ├── PRIVACY-RETENTION.md
-│   └── OPERATIONS.md
+├── week1/ ... week4/
 ├── src/
 │   ├── common/
-│   ├── discord/
-│   └── telegram/
-├── fixtures/
+│   └── discord/
 ├── deploy/
+├── fixtures/
 ├── tests/
-└── .github/workflows/
+└── reports/
 ```
 
-## Ten-week roadmap
+Bot tokens and platform credentials must be injected through approved secrets handling and must never be committed to Git.
 
-### Week 1 — Threat model and channel abstraction
 
-- compare Discord and Telegram API/event models;
-- define common envelope and adapter interface;
-- document trust boundaries and secrets handling;
-- build local fake-event fixtures.
+# Final project deliverable
 
-### Week 2 — One-channel vertical slice
+A minimal Discord-to-ACP vertical slice with explicit identity mapping, bounded capability, persistent results, restart recovery and an auditable denial path.
 
-Implement one provider end to end:
+# Getting help
+
+Use your project repository for technical issues and decisions, and the programme Discord for collaborative teaching/discussion. When asking for help, include:
 
 ```text
-message -> adapter -> fixed diagnostic -> response
+what you expected
+what actually happened
+the exact command/request
+relevant error/log excerpt
+which layer you already checked
+source commit(s) in use
 ```
 
-Use a local/mock control-plane endpoint if required.
+Redact credentials and private infrastructure values.
 
-### Week 3 — `agent-control-plane` integration
-
-- authenticated service-to-service call;
-- persistent task/run record;
-- idempotency key based on provider/message identifiers;
-- clear error states.
-
-### Week 4 — Second provider
-
-Implement the same contract for the second channel. Avoid copy/paste provider-specific business logic.
-
-### Week 5 — Identity linking
-
-- design account-link flow through `quantum-platform` or a project fixture;
-- test revoked/unlinked identities;
-- test duplicate names and changed display names;
-- document administrator recovery.
-
-### Week 6 — Hermes conversational layer
-
-Hermes receives only the authorised task/evidence context required for the response. Add explanation, conversational continuity and safe formatting.
-
-### Week 7 — Cross-project integration
-
-Consume one real platform diagnostic and one real workflow/task status. Freeze adapter/control-plane interface.
-
-### Week 8 — Reliability and abuse handling
-
-- duplicate webhooks;
-- retries/timeouts;
-- inference unavailable;
-- provider unavailable;
-- rate limiting;
-- malformed content;
-- observability dashboards.
-
-### Week 9 — Staging release
-
-Deploy from `stag`, perform an end-to-end test matrix across both providers and verify audit history.
-
-### Week 10 — Final demo
-
-Demonstrate identical logical requests from Discord and Telegram, show account linkage and authorisation, display task/evidence history, deliberately trigger a denial/failure, and explain where every trust decision occurs.
-
-### Weeks 11–12 — Stretch
-
-Human approval for one bounded mutation, richer workflow integration and upstream PR refinement.
-
-## Test matrix
-
-At minimum test:
-
-- linked user / permitted command;
-- unlinked user;
-- linked user / forbidden capability;
-- duplicated provider event;
-- delayed retry;
-- malformed payload;
-- Hermes unavailable;
-- control-plane unavailable;
-- evidence source unavailable;
-- request that exceeds rate limit.
-
-## Metrics
-
-- end-to-end response latency;
-- control-plane queue/run latency;
-- adapter error rate;
-- duplicate suppression count;
-- unauthorised request count;
-- model/inference latency separately from transport latency;
-- percentage of responses with traceable task/evidence IDs.
-
-## Acceptance criteria
-
-A student must be able to send the same authorised diagnostic request through both Discord and Telegram, receive equivalent evidence-grounded answers, locate the corresponding task/run in the control-plane history, and demonstrate that an unlinked or unauthorised user cannot obtain the protected result.
-
-## Upstream contribution targets
-
-- `agent-control-plane`: stable channel-adapter/task contracts and audit improvements;
-- `quantum-platform`: account-linking/admin views;
-- `infra-hpc-qc-k8s`: GitOps deployment, secrets and network policies;
-- `quantum-workflows`: read-only workflow status contract.
+Most importantly: **Keep Calm and Carry On.** The purpose is to learn how the layers fit together, not to already know them on day one.
