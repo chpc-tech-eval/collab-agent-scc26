@@ -14,10 +14,10 @@ resource "openstack_networking_port_v2" "this" {
 }
 
 resource "openstack_compute_instance_v2" "this" {
-  for_each    = var.hosts
-  name        = each.key
-  flavor_id   = each.value.flavor_id
-  key_pair    = var.keypair_name
+  for_each  = var.hosts
+  name      = each.key
+  flavor_id = each.value.flavor_id
+  key_pair  = var.keypair_name
 
   # Boot from a Cinder volume built from the Rocky image, instead of the flavor's local disk.
   block_device {

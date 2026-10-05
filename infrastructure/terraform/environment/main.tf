@@ -23,8 +23,8 @@ module "compute" {
   hosts                 = var.hosts
   external_network_name = var.external_network_name
 
-  network_ids = module.network.network_ids   # map: { mgmt = ..., k8s = ... }
-  subnet_ids  = module.network.subnet_ids    # map: { mgmt = ..., k8s = ... }
-  sg_ids      = module.security.sg_ids       # map keyed by host name
-  depends_on = [module.network] 
+  network_ids = module.network.network_ids # map: { mgmt = ..., k8s = ... }
+  subnet_ids  = module.network.subnet_ids  # map: { mgmt = ..., k8s = ... }
+  sg_ids      = module.security.sg_ids     # map keyed by host name
+  depends_on  = [module.network]
 }
