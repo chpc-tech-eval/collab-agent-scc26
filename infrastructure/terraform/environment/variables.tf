@@ -1,4 +1,4 @@
-variable "Jargon" {
+variable "team_name" {
   type = string
 }
 
@@ -27,7 +27,7 @@ variable "hosts" {
     network      = string # "mgmt" or "k8s"
     ip           = string # fixed private IP inside that network's CIDR
   }))
-}}
+}
 
 variable "external_network_name" {
   description = "Name of the external network, used as the floating IP pool"
