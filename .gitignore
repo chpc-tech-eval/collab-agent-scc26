@@ -10,4 +10,4 @@ clouds.yaml
 secrets-private/
 *tfplan
 *openrc*.sh
-inventories/private/
+**/inventories/private/
