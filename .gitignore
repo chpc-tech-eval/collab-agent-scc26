@@ -8,3 +8,6 @@ clouds.yaml
 *.key
 *.crt.private
 secrets-private/
+*tfplan
+*openrc*.sh
+inventories/private/
