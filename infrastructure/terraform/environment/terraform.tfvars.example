@@ -1,0 +1,12 @@
+team_name           = "Jargon"
+image_id            = "<rocky-9-image-id>"
+external_network_id = "<public-network-id>"
+keypair_name        = "<your-keypair>"
+
+hosts = {
+  "edge-01"       = { flavor_id = "<large-id>",     root_disk_gb = 50 }
+  "api-lb-01"     = { flavor_id = "<small-id>",     root_disk_gb = 25 }
+  "k8s-cp-01"     = { flavor_id = "<medium-id>",    root_disk_gb = 30 }
+  "k8s-worker-01" = { flavor_id = "<scc-large-id>", root_disk_gb = 40 }
+  "k8s-worker-02" = { flavor_id = "<scc-large-id>", root_disk_gb = 40 }
+}
