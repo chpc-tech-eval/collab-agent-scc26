@@ -1,0 +1,38 @@
+---
+# Bootstrap for all hosts
+- name: Base bootstrap for all hosts
+  hosts: all # Do for all nodes
+  become: true # Use sudo
+  gather_facts: true # For gathering facts such as OS family and IP addresses, which modules like dnf and hostname use.
+
+  vars:
+    base_timezone: Africa/Johannesburg # Time zone for sync
+    base_packages:
+      - chrony # Time service
+      - vim-enhanced
+      - curl
+      - tar # For zips
+      - rsync # Copy files across network
+      - bind-utils # For DNS debugging
+      - tcpdump # For packet capturing for debugging
+      - policycoreutils-python-utils # For SELinux boolean
+
+  tasks: # Give hostname for local network
+    - name: Set hostname from inventory name
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Install base packages
+      ansible.builtin.dnf:
+        name: "{{ base_packages }}"
+        state: present # Makes idempotent
+
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ base_timezone }}"
+
+    - name: Enable and start chronyd
+      ansible.builtin.service:
+        name: chronyd
+        state: started
+        enabled: true
