@@ -1,13 +1,26 @@
+# Terraform
 *.tfstate
 *.tfstate.*
 .terraform/
-terraform.tfvars
-*.auto.tfvars
+*.tfvars
+*.tfvars.json
+*tfplan
+crash.log
+
+# Credentials
 clouds.yaml
+*openrc*.sh
 *.pem
 *.key
 *.crt.private
+id_rsa*
+id_ed25519*
 secrets-private/
-*tfplan
-*openrc*.sh
+
+# Ansible
 **/inventories/private/
+*.retry
+.vault_pass*
+
+# Local
+/private
