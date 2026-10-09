@@ -3,6 +3,7 @@ module "network" {
   team_name           = var.team_name
   mgmt_cidr           = var.mgmt_cidr
   k8s_cidr            = var.k8s_cidr
+  vpn_cidr            = var.vpn_cidr
   external_network_id = var.external_network_id
 }
 
@@ -11,6 +12,7 @@ module "security" {
   team_name      = var.team_name
   mgmt_cidr      = var.mgmt_cidr
   k8s_cidr       = var.k8s_cidr
+  vpn_cidr       = var.vpn_cidr
   admin_ssh_cidr = var.admin_ssh_cidr
 }
 
@@ -22,6 +24,7 @@ module "compute" {
   volume_type           = var.volume_type
   hosts                 = var.hosts
   external_network_name = var.external_network_name
+  vpn_cidr              = var.vpn_cidr
 
   network_ids = module.network.network_ids # map: { mgmt = ..., k8s = ... }
   subnet_ids  = module.network.subnet_ids  # map: { mgmt = ..., k8s = ... }
