@@ -44,3 +44,27 @@ resource "openstack_networking_secgroup_rule_v2" "edge_ssh" {
   port_range_max    = 22
   remote_ip_prefix  = var.admin_ssh_cidr
 }
+
+# WireGuard: edge-01 only, same source restriction as bootstrap SSH.
+resource "openstack_networking_secgroup_rule_v2" "edge_wireguard" {
+  security_group_id = openstack_networking_secgroup_v2.this["edge-01"].id
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "udp"
+  port_range_min    = 51820
+  port_range_max    = 51820
+  remote_ip_prefix  = var.admin_ssh_cidr
+}
+
+# Allows VPN via Wireguard subnet
+# edge-01 is excluded: VPN traffic reaches it decrypted on wg0, after the cloud firewall.
+resource "openstack_networking_secgroup_rule_v2" "vpn_ssh" {
+  for_each          = toset([for h in local.host_names : h if h != "edge-01"])
+  security_group_id = openstack_networking_secgroup_v2.this[each.key].id
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  remote_ip_prefix  = var.vpn_cidr
+}

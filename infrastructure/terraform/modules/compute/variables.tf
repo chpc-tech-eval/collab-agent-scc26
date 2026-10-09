@@ -16,3 +16,8 @@ variable "hosts" {
 variable "network_ids" { type = map(string) }
 variable "subnet_ids" { type = map(string) }
 variable "sg_ids" { type = map(string) }
+
+variable "vpn_cidr" {
+  description = "WireGuard VPN overlay CIDR"
+  type        = string
+}

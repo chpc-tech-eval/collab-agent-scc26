@@ -46,3 +46,13 @@ variable "admin_ssh_cidr" {
   description = "Your workstation public IP as a /32, for temporary bootstrap SSH"
   type        = string
 }
+
+variable "vpn_cidr" {
+  description = "WireGuard VPN overlay CIDR (edge-01 and admin clients)"
+  type        = string
+
+  validation {
+    condition     = can(cidrnetmask(var.vpn_cidr))
+    error_message = "vpn_cidr must be a valid IPv4 CIDR, e.g. 10.200.0.0/24."
+  }
+}
