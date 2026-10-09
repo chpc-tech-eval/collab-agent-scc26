@@ -7,3 +7,8 @@ variable "vpn_cidr" {
   description = "WireGuard VPN overlay CIDR"
   type        = string
 }
+
+variable "vpn_next_hop" {
+  description = "Fixed IP of the VPN gateway (edge-01 on the mgmt network)"
+  type        = string
+}
