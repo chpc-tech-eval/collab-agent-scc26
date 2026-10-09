@@ -4,6 +4,7 @@ module "network" {
   mgmt_cidr           = var.mgmt_cidr
   k8s_cidr            = var.k8s_cidr
   vpn_cidr            = var.vpn_cidr
+  vpn_next_hop        = var.hosts["edge-01"].ip
   external_network_id = var.external_network_id
 }
 
