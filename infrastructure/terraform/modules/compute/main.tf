@@ -7,6 +7,15 @@ resource "openstack_networking_port_v2" "this" {
   admin_state_up     = true
   security_group_ids = [var.sg_ids[each.key]]
 
+  # edge-01 forwards VPN client traffic (source in vpn_cidr), so Neutron port
+  # security must allow that source on this port. Other hosts get nothing.
+  dynamic "allowed_address_pairs" {
+    for_each = each.key == "edge-01" ? [var.vpn_cidr] : []
+    content {
+      ip_address = allowed_address_pairs.value
+    }
+  }
+
   fixed_ip {
     subnet_id  = var.subnet_ids[each.value.network]
     ip_address = each.value.ip

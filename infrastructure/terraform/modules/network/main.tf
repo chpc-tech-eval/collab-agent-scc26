@@ -37,3 +37,13 @@ resource "openstack_networking_router_interface_v2" "this" {
   router_id = openstack_networking_router_v2.this.id
   subnet_id = openstack_networking_subnet_v2.this[each.key].id
 }
+
+# Return path for VPN clients: replies to vpn_cidr go to edge-01 (the WireGuard gateway).
+# The next hop must sit on a subnet the router is attached to, so wait for the interfaces.
+resource "openstack_networking_router_route_v2" "vpn" {
+  router_id        = openstack_networking_router_v2.this.id
+  destination_cidr = var.vpn_cidr
+  next_hop         = var.vpn_next_hop
+
+  depends_on = [openstack_networking_router_interface_v2.this]
+}
