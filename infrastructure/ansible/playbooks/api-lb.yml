@@ -1,0 +1,53 @@
+---
+- name: Configure Kubernetes API load balancer
+  hosts: api_lb
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Install HAProxy
+      ansible.builtin.dnf:
+        name: haproxy
+        state: present
+
+    - name: Configure HAProxy
+      ansible.builtin.copy:
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          global
+              log         127.0.0.1 local2
+             # chroot      /var/lib/haproxy
+             # pidfile     /var/run/haproxy.pid
+              maxconn     4000
+              user        haproxy
+              group       haproxy
+              daemon
+
+          defaults
+              mode                    tcp
+              log                     global
+              option                  tcplog
+              timeout connect         10s
+              timeout client          1m
+              timeout server          1m
+
+          frontend kubernetes-api
+              bind *:6443
+              default_backend kubernetes-control-plane
+
+          backend kubernetes-control-plane
+              server control-plane 172.26.1.11:6443 check
+
+    - name: Validate HAProxy configuration
+      ansible.builtin.command:
+        cmd: haproxy -c -f /etc/haproxy/haproxy.cfg
+      changed_when: false
+
+    - name: Enable and start HAProxy
+      ansible.builtin.service:
+        name: haproxy
+        state: started
+        enabled: true
