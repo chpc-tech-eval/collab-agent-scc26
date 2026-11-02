@@ -36,3 +36,10 @@
         name: chronyd
         state: started
         enabled: true
+
+    - name: Install teammate SSH public keys
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ item }}"
+        state: present
+      loop: "{{ team_ssh_public_keys }}"
