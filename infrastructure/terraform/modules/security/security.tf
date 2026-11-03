@@ -34,16 +34,7 @@ resource "openstack_networking_secgroup_rule_v2" "internal" {
   # protocol omitted = any protocol
 }
 
-# Temporary bootstrap SSH: edge-01 only, only from your admin IP.
-resource "openstack_networking_secgroup_rule_v2" "edge_ssh" {
-  security_group_id = openstack_networking_secgroup_v2.this["edge-01"].id
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  protocol          = "tcp"
-  port_range_min    = 22
-  port_range_max    = 22
-  remote_ip_prefix  = var.admin_ssh_cidr
-}
+
 
 # WireGuard: edge-01 only, same source restriction as bootstrap SSH.
 resource "openstack_networking_secgroup_rule_v2" "edge_wireguard" {
