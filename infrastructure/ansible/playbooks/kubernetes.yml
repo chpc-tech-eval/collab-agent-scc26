@@ -1,0 +1,110 @@
+- name: Initialise Kubernetes control plane
+  hosts: control_plane
+  become: true
+  gather_facts: true
+
+  vars:
+    kubernetes_version: "v1.36.4"
+    control_plane_endpoint: "172.26.1.10:6443"
+    control_plane_address: "172.26.1.11"
+    pod_subnet: "10.244.0.0/16"
+    service_subnet: "10.96.0.0/12"
+    cri_socket: "unix:///run/containerd/containerd.sock"
+    kubeadm_config_path: "/etc/kubernetes/kubeadm-config.yaml"
+
+  tasks:
+    - name: Check whether the control plane is already initialised
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: kubeadm_admin_conf
+
+    - name: Create kubeadm configuration directory
+      ansible.builtin.file:
+        path: /etc/kubernetes
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write kubeadm configuration
+      ansible.builtin.copy:
+        dest: "{{ kubeadm_config_path }}"
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          ---
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: InitConfiguration
+          localAPIEndpoint:
+            advertiseAddress: "{{ control_plane_address }}"
+            bindPort: 6443
+          nodeRegistration:
+            criSocket: "{{ cri_socket }}"
+          ---
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: ClusterConfiguration
+          kubernetesVersion: "{{ kubernetes_version }}"
+          controlPlaneEndpoint: "{{ control_plane_endpoint }}"
+          networking:
+            podSubnet: "{{ pod_subnet }}"
+            serviceSubnet: "{{ service_subnet }}"
+          apiServer:
+            certSANs:
+              - "172.26.1.10"
+              - "172.26.1.11"
+      when: not kubeadm_admin_conf.stat.exists
+
+    - name: Initialise Kubernetes control plane
+      ansible.builtin.command:
+        cmd: "kubeadm init --config {{ kubeadm_config_path }}"
+      when: not kubeadm_admin_conf.stat.exists
+
+    - name: Create kubeconfig directory for rocky
+      ansible.builtin.file:
+        path: /home/rocky/.kube
+        state: directory
+        owner: rocky
+        group: rocky
+        mode: "0700"
+
+    - name: Copy administrative kubeconfig to rocky user
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/rocky/.kube/config
+        remote_src: true
+        owner: rocky
+        group: rocky
+        mode: "0600"
+
+- name: Generate worker join command
+  hosts: control_plane
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Generate temporary kubeadm join command
+      ansible.builtin.command:
+        cmd: kubeadm token create --ttl 30m --print-join-command
+      register: kubeadm_join_command
+      changed_when: true
+      no_log: true
+
+
+- name: Join worker nodes to Kubernetes
+  hosts: workers
+  become: true
+  gather_facts: false
+  serial: 1
+
+  tasks:
+    - name: Check whether worker is already joined
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_config
+
+    - name: Join worker to Kubernetes cluster
+      ansible.builtin.command:
+        cmd: "{{ hostvars['k8s-cp-01']['kubeadm_join_command']['stdout'] }}"
+      when: not kubelet_config.stat.exists
+      no_log: true
