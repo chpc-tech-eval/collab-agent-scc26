@@ -1,0 +1,124 @@
+- name: Bootstrap Argo CD and Sealed Secrets
+  hosts: control_plane
+  become: true
+  gather_facts: true
+
+  vars:
+    kubectl_path: /usr/bin/kubectl
+    kubeconfig_path: /home/rocky/.kube/config
+
+    argocd_version: "v3.5.0"
+    sealed_secrets_version: "v0.39.1"
+
+  tasks:
+    - name: Check that the Kubernetes admin kubeconfig exists
+      ansible.builtin.stat:
+        path: "{{ kubeconfig_path }}"
+      register: kubeconfig_stat
+
+    - name: Require the Kubernetes admin kubeconfig
+      ansible.builtin.assert:
+        that:
+          - kubeconfig_stat.stat.exists
+        fail_msg: "Kubernetes kubeconfig is missing on the control plane."
+
+    - name: Check Kubernetes API readiness
+      ansible.builtin.command:
+        argv:
+          - "{{ kubectl_path }}"
+          - "--kubeconfig"
+          - "{{ kubeconfig_path }}"
+          - get
+          - --raw=/readyz
+      register: kubernetes_ready
+      changed_when: false
+      retries: 12
+      delay: 10
+      until: kubernetes_ready.rc == 0
+
+    - name: Create Argo CD namespace
+      ansible.builtin.command:
+        argv:
+          - "{{ kubectl_path }}"
+          - "--kubeconfig"
+          - "{{ kubeconfig_path }}"
+          - create
+          - namespace
+          - argocd
+      register: argocd_namespace
+      changed_when: argocd_namespace.rc == 0
+      failed_when:
+        - argocd_namespace.rc != 0
+        - "'AlreadyExists' not in argocd_namespace.stderr"
+
+    - name: Install Argo CD
+      ansible.builtin.command:
+       argv:
+        - "{{ kubectl_path }}"
+        - "--kubeconfig"
+        - "{{ kubeconfig_path }}"
+        - apply
+        - -n
+        - argocd
+        - --server-side
+        - --force-conflicts
+        - -f
+        - "https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml"
+      register: argocd_install
+      changed_when: "'created' in argocd_install.stdout or 'configured' in argocd_install.stdout"
+
+    - name: Install Sealed Secrets controller
+      ansible.builtin.command:
+        argv:
+          - "{{ kubectl_path }}"
+          - "--kubeconfig"
+          - "{{ kubeconfig_path }}"
+          - apply
+          - --server-side
+          - --force-conflicts
+          - -f
+          - "https://github.com/bitnami-labs/sealed-secrets/releases/download/{{ sealed_secrets_version }}/controller.yaml"
+      register: sealed_secrets_install
+      changed_when: "'created' in sealed_secrets_install.stdout or 'configured' in sealed_secrets_install.stdout"
+
+    - name: Wait for Argo CD server
+      ansible.builtin.command:
+        argv:
+          - "{{ kubectl_path }}"
+          - "--kubeconfig"
+          - "{{ kubeconfig_path }}"
+          - rollout
+          - status
+          - deployment/argocd-server
+          - -n
+          - argocd
+          - --timeout=300s
+      changed_when: false
+
+    - name: Wait for Argo CD application controller
+      ansible.builtin.command:
+        argv:
+          - "{{ kubectl_path }}"
+          - "--kubeconfig"
+          - "{{ kubeconfig_path }}"
+          - rollout
+          - status
+          - statefulset/argocd-application-controller
+          - -n
+          - argocd
+          - --timeout=300s
+      changed_when: false
+
+    - name: Wait for Sealed Secrets controller
+      ansible.builtin.command:
+        argv:
+          - "{{ kubectl_path }}"
+          - "--kubeconfig"
+          - "{{ kubeconfig_path }}"
+          - rollout
+          - status
+          - deployment/sealed-secrets-controller
+          - -n
+          - kube-system
+          - --timeout=300s
+      changed_when: false

@@ -1,0 +1,15 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  name: cloud-config
+  namespace: kube-system
+spec:
+  encryptedData:
+    cloud.conf: AgAU5LZDPJE686DBkxCoTT5MQhqevSWVlRvZRnEiLa3WiXzdz1rO02WOBcIq+WA4zeuCPF8St/EKGdfcfDsEqzVjMXjDHTON66GFJf43PDAqpV8EuAJE5pxw3MqIlXT4UNHg/0CCPijvOM+xrEb2rcesHOyN1BlMpUc3MtaW5KBeIBZhFyBjL/JyTy91A0FItlSofUc0NkIYItx/oakw8AxsCfSd26hk2wwBQGGcC5086rdSWFdH5QHc61gjkpW49QUOVypPu4nBVM6TFr1OawTWVmaUZIsuYCMKaVoj6QRaRd2WTZRu6Szr3PX0hK8cFUNxMedtwOyWWCknVuNRyMgb0l4/YvavPYhY0WRnnuqt04VlEdt72DsFmhXjOXTh8EwCgM3k5mrORHlJJrezdLEWRYuR29nCzZoC4AsAYCWeE1ugChOmgY3FwoB+CWrqo2yL67oAygwi6q3KswKwxRi6eldRPZsSqIW97Y6pDV8emD1W6ZgnoLKLqYer/CsH7ibd5RE2ChQgxeWN2wYnr96fI3Q80mHth1itxQsrGClsDC4pNFH6GaGmzE80oo60kb5GOPjEgUIT6NThZ4NsoFE5MgOZmeXpLI4A4sbv9oJdYnFvabg2AA6g+RZ3fD6z9PuPGo67UsjPDBBp7dOw8G9p2sz9eyvPXb8uxjDkLrOI6otV6qH4S0n/henC8NwwoROOIvbXobbIDnuXtAAD6I3aybEixoyDqN2Po2mFzLAfZDo4KJhTVzlei2K/Y1qyqqLEw1jh22wC5nyAJHQXA/3L2GoSxqxBhsdxkNBMyToSSYDEuZJ8OEYIv+dU3G6VBsjqvH9M0MEGaZRWyJTbu7EeOEydsvne/z87XMHwx9Cx/18amV0Mn3XcAY+meHgqdAzQqeCnUg4alN/4zXeh4Gxe/LLgk+nDwHBYLpUgP+UBcFtkS7tZnkmc5tzayk/768/c+rW/2JbWOjrRdp40MnjmaDafOtOsqhIpQE9YLelfK8mnPZEPfRppp2m/xzhrSlPNp8Trzmxiy3uLQ2FH4K8rdgDkBXHETJ58BF91YdxKXxtZDywsfyFExLSpbBJgPyuzJK6EYDg=
+  template:
+    metadata:
+      name: cloud-config
+      namespace: kube-system

@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cinder-csi
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes.github.io/cloud-provider-openstack
+    chart: openstack-cinder-csi
+    targetRevision: 2.36.5
+    helm:
+      values: |
+        secret:
+          enabled: true
+          create: false
+          name: cloud-config
+          filename: cloud.conf
+
+        storageClass:
+          enabled: false
+          custom: |
+            apiVersion: storage.k8s.io/v1
+            kind: StorageClass
+            metadata:
+              name: cinder-ssd
+            provisioner: cinder.csi.openstack.org
+            allowVolumeExpansion: true
+            volumeBindingMode: WaitForFirstConsumer
+            reclaimPolicy: Delete
+            parameters:
+              type: SSD
+            ---
+            apiVersion: storage.k8s.io/v1
+            kind: StorageClass
+            metadata:
+              name: cinder-hdd
+            provisioner: cinder.csi.openstack.org
+            allowVolumeExpansion: true
+            volumeBindingMode: WaitForFirstConsumer
+            reclaimPolicy: Delete
+            parameters:
+              type: HDD
+            ---
+            apiVersion: storage.k8s.io/v1
+            kind: StorageClass
+            metadata:
+              name: cinder-default
+            provisioner: cinder.csi.openstack.org
+            allowVolumeExpansion: true
+            volumeBindingMode: WaitForFirstConsumer
+            reclaimPolicy: Delete
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
