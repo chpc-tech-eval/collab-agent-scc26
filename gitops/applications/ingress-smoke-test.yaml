@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-smoke-test
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/chpc-tech-eval/collab-agent-scc26.git
+    targetRevision: dev
+    path: gitops/resources/ingress-smoke-test
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: whoami
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

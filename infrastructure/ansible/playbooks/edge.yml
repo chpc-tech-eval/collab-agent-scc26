@@ -15,6 +15,14 @@
       public_key: "qQPIXKKm6If75AC3Ewa6PTt/eY6VXH2ZkuYk9yYYGFI="
       allowed_ips: "10.200.0.3/32"
     wg_private_subnet: "172.26.1.0/24"
+    dns_private_address: "172.26.0.10"
+    dns_vpn_address: "10.200.0.1"
+    dns_upstream_servers:
+      - "1.1.1.1"
+      - "8.8.8.8"
+    dns_platform_addresses:
+      - "172.26.1.21"
+      - "172.26.1.22"
 
   tasks:
     - name: Install EPEL repository
@@ -27,7 +35,61 @@
         name:
           - wireguard-tools
           - nftables
+          - dnsmasq
         state: present
+
+    - name: Ensure dnsmasq configuration directory exists
+      ansible.builtin.file:
+        path: /etc/dnsmasq.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Enable dnsmasq configuration directory
+      ansible.builtin.lineinfile:
+        path: /etc/dnsmasq.conf
+        regexp: '^#?conf-dir='
+        line: 'conf-dir=/etc/dnsmasq.d,.rpmnew,.rpmsave,.rpmorig'
+        create: true
+
+    - name: Disable conflicting dnsmasq bind-interfaces default
+      ansible.builtin.lineinfile:
+        path: /etc/dnsmasq.conf
+        regexp: '^bind-interfaces$'
+        state: absent
+
+    - name: Configure private platform DNS
+      ansible.builtin.copy:
+        dest: /etc/dnsmasq.d/scc26.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          port=53
+          listen-address={{ dns_private_address }},{{ dns_vpn_address }}
+          bind-dynamic
+          no-dhcp-interface=eth0
+          no-dhcp-interface=wg0
+          except-interface=lo
+          no-resolv
+          {% for server in dns_upstream_servers %}
+          server={{ server }}
+          {% endfor %}
+          domain-needed
+          bogus-priv
+          local=/scc26.internal/
+          {% for address in dns_platform_addresses %}
+          host-record=student-platform.scc26.internal,{{ address }}
+          {% endfor %}
+          cache-size=1000
+      notify: Restart dnsmasq
+
+    - name: Enable and start dnsmasq
+      ansible.builtin.service:
+        name: dnsmasq
+        state: started
+        enabled: true
 
     - name: Create WireGuard configuration directory
       ansible.builtin.file:
@@ -163,4 +225,9 @@
     - name: Restart nftables
       ansible.builtin.service:
         name: nftables
+        state: restarted
+
+    - name: Restart dnsmasq
+      ansible.builtin.service:
+        name: dnsmasq
         state: restarted
