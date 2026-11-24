@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-platform-health
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  platform-health.json: |
+    {
+      "uid": "scc26-platform-health",
+      "title": "Platform & Observability Health",
+      "tags": ["scc26", "platform"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Scrape Targets Up by Job",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "Prometheus"},
+          "targets": [
+            {
+              "expr": "sum by (job) (up)",
+              "legendFormat": "{{job}}"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Prometheus Scrape Duration (s)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "Prometheus"},
+          "targets": [
+            {
+              "expr": "avg by (job) (scrape_duration_seconds)",
+              "legendFormat": "{{job}}"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Container Memory Working Set (MiB)",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "Prometheus"},
+          "targets": [
+            {
+              "expr": "sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}) / 1024 / 1024",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        }
+      ]
+    }
