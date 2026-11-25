@@ -81,6 +81,7 @@
           local=/scc26.internal/
           {% for address in dns_platform_addresses %}
           host-record=student-platform.scc26.internal,{{ address }}
+          host-record=wazuh.scc26.internal,{{ address }}
           {% endfor %}
           cache-size=1000
       notify: Restart dnsmasq
@@ -230,4 +231,116 @@
     - name: Restart dnsmasq
       ansible.builtin.service:
         name: dnsmasq
+        state: restarted
+- name: Configure Wazuh Manager and Suricata IDS on edge
+  hosts: edge_nodes
+  become: true
+  gather_facts: true
+
+  vars:
+    wazuh_version: "4.9"
+    suricata_interface: "eth0"
+    suricata_home_net: "[172.26.0.0/16,10.200.0.0/24]"
+
+  tasks:
+    - name: Import Wazuh GPG key
+      tags: [wazuh]
+      ansible.builtin.rpm_key:
+        key: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        state: present
+
+    - name: Configure Wazuh YUM repository
+      tags: [wazuh]
+      ansible.builtin.yum_repository:
+        name: wazuh
+        description: EL-$releasever - Wazuh
+        baseurl: "https://packages.wazuh.com/4.x/yum/"
+        gpgcheck: true
+        gpgkey: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        enabled: true
+        protect: true
+
+    - name: Install Wazuh Manager
+      tags: [wazuh]
+      ansible.builtin.dnf:
+        name: wazuh-manager
+        state: present
+
+    - name: Enable and start Wazuh Manager
+      tags: [wazuh]
+      ansible.builtin.service:
+        name: wazuh-manager
+        state: started
+        enabled: true
+
+    - name: Install EPEL and Suricata IDS
+      tags: [suricata]
+      ansible.builtin.dnf:
+        name:
+          - epel-release
+          - suricata
+        state: present
+
+    - name: Ensure local Suricata rules directory exists
+      tags: [suricata]
+      ansible.builtin.file:
+        path: /var/lib/suricata/rules
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install benign local IDS test rule
+      tags: [suricata]
+      ansible.builtin.copy:
+        dest: /var/lib/suricata/rules/local.rules
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Benign test rule for authorised Week-3 IDS verification
+          alert http any any -> any any (msg:"SCC26 Authorised IDS Test Request"; content:"X-SCC26-IDS-Test"; http_header; sid:9000001; rev:1;)
+      notify: Restart suricata
+
+    - name: Configure Suricata sysconfig interface
+      tags: [suricata]
+      ansible.builtin.copy:
+        dest: /etc/sysconfig/suricata
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          OPTIONS="-i {{ suricata_interface }} --user suricata"
+      notify: Restart suricata
+
+    - name: Configure Suricata HOME_NET and local.rules
+      tags: [suricata]
+      ansible.builtin.blockinfile:
+        path: /etc/suricata/suricata.yaml
+        marker: "# {mark} ANSIBLE MANAGED SCC26 IDS"
+        block: |
+          vars:
+            address-groups:
+              HOME_NET: "{{ suricata_home_net }}"
+          default-rule-path: /var/lib/suricata/rules
+          rule-files:
+            - local.rules
+      notify: Restart suricata
+
+    - name: Validate Suricata configuration
+      tags: [suricata]
+      ansible.builtin.command: suricata -T -c /etc/suricata/suricata.yaml
+      changed_when: false
+
+    - name: Enable and start Suricata IDS
+      tags: [suricata]
+      ansible.builtin.service:
+        name: suricata
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart suricata
+      ansible.builtin.service:
+        name: suricata
         state: restarted
