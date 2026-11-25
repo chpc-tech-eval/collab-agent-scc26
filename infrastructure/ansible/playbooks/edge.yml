@@ -293,6 +293,16 @@
       tags:
         - suricata
 
+    - name: Ensure Suricata log directory is writable by suricata user
+      tags: [suricata]
+      ansible.builtin.file:
+        path: /var/log/suricata
+        state: directory
+        owner: suricata
+        group: suricata
+        recurse: true
+      notify: Restart suricata
+
     - name: Ensure local Suricata rules directory exists
       tags: [suricata]
       ansible.builtin.file:
