@@ -1,0 +1,50 @@
+- name: Install and enroll Wazuh agents across team VMs
+  hosts: all:!edge_nodes
+  become: true
+  gather_facts: true
+
+  vars:
+    wazuh_version: "4.9"
+    wazuh_manager_ip: "172.26.0.10"
+
+  tasks:
+    - name: Import Wazuh GPG key
+      ansible.builtin.rpm_key:
+        key: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        state: present
+
+    - name: Configure Wazuh YUM repository
+      ansible.builtin.yum_repository:
+        name: wazuh
+        description: EL-$releasever - Wazuh
+        baseurl: "https://packages.wazuh.com/4.x/yum/"
+        gpgcheck: true
+        gpgkey: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        enabled: true
+        protect: true
+
+    - name: Install Wazuh Agent
+      ansible.builtin.dnf:
+        name: wazuh-agent
+        state: present
+      environment:
+        WAZUH_MANAGER: "{{ wazuh_manager_ip }}"
+
+    - name: Ensure Wazuh Manager address is configured in ossec.conf
+      ansible.builtin.replace:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<address>.*?</address>'
+        replace: "<address>{{ wazuh_manager_ip }}</address>"
+      notify: Restart wazuh-agent
+
+    - name: Enable and start Wazuh Agent
+      ansible.builtin.service:
+        name: wazuh-agent
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart wazuh-agent
+      ansible.builtin.service:
+        name: wazuh-agent
+        state: restarted
