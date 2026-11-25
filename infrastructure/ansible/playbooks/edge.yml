@@ -348,77 +348,84 @@
         name: suricata
         state: restarted
 
-- name: Configure Filebeat log shipper on edge
+- name: Configure Fluent Bit log shipper on edge
   hosts: edge_nodes
   become: true
   tags:
     - filebeat
+    - fluentbit
   tasks:
-    - name: Import Elastic GPG key for Filebeat
-      ansible.builtin.rpm_key:
-        state: present
-        key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-
-    - name: Configure Elastic 7.x OSS YUM repository for Filebeat
-      ansible.builtin.yum_repository:
-        name: elastic-7.x
-        description: Elastic repository for 7.x packages
-        baseurl: https://artifacts.elastic.co/packages/oss-7.x/yum
-        gpgcheck: true
-        gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-        enabled: true
-
-    - name: Install Filebeat 7.10.2 (OpenSearch compatible)
-      ansible.builtin.dnf:
-        name: filebeat-7.10.2
-        state: present
-        allow_downgrade: true
-
-    - name: Configure Filebeat to ship Wazuh and Suricata alerts to Wazuh Indexer
-      ansible.builtin.copy:
-        dest: /etc/filebeat/filebeat.yml
-        owner: root
-        group: root
-        mode: "0600"
-        content: |
-          filebeat.inputs:
-            - type: log
-              enabled: true
-              paths:
-                - /var/ossec/logs/alerts/alerts.json
-              json.keys_under_root: true
-              json.overwrite_keys: true
-              fields:
-                pipeline: wazuh-alerts
-              fields_under_root: true
-
-            - type: log
-              enabled: true
-              paths:
-                - /var/log/suricata/eve.json
-              json.keys_under_root: true
-              json.overwrite_keys: true
-              fields:
-                pipeline: suricata-eve
-              fields_under_root: true
-
-          output.elasticsearch:
-            hosts: ["http://172.26.1.21:30920"]
-            index: "wazuh-alerts-4.x-%{+yyyy.MM.dd}"
-
-          setup.template.enabled: false
-          setup.ilm.enabled: false
-          seccomp.enabled: false
-      notify: Restart filebeat
-
-    - name: Enable and start Filebeat
+    - name: Stop and disable legacy Filebeat if present
       ansible.builtin.service:
         name: filebeat
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Configure Fluent Bit YUM repository
+      ansible.builtin.yum_repository:
+        name: fluent-bit
+        description: Fluent Bit Official Repository
+        baseurl: https://packages.fluentbit.io/rockylinux/$releasever/
+        gpgcheck: true
+        gpgkey: https://packages.fluentbit.io/fluentbit.key
+        enabled: true
+
+    - name: Install Fluent Bit
+      ansible.builtin.dnf:
+        name: fluent-bit
+        state: present
+
+    - name: Configure Fluent Bit to ship Wazuh and Suricata alerts to Wazuh Indexer
+      ansible.builtin.copy:
+        dest: /etc/fluent-bit/fluent-bit.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [SERVICE]
+              Flush         2
+              Log_Level     info
+              Parsers_File  parsers.conf
+
+          [INPUT]
+              Name              tail
+              Tag               wazuh.alerts
+              Path              /var/ossec/logs/alerts/alerts.json
+              Parser            json
+              DB                /var/log/flb_wazuh.db
+              Mem_Buf_Limit     10MB
+              Read_from_Head    True
+
+          [INPUT]
+              Name              tail
+              Tag               suricata.eve
+              Path              /var/log/suricata/eve.json
+              Parser            json
+              DB                /var/log/flb_suricata.db
+              Mem_Buf_Limit     10MB
+              Read_from_Head    True
+
+          [OUTPUT]
+              Name                opensearch
+              Match               *
+              Host                172.26.1.21
+              Port                30920
+              Logstash_Format     On
+              Logstash_Prefix     wazuh-alerts-4.x
+              Logstash_DateFormat %Y.%m.%d
+              Suppress_Type_Name  On
+              tls                 Off
+      notify: Restart fluent-bit
+
+    - name: Enable and start Fluent Bit
+      ansible.builtin.service:
+        name: fluent-bit
         state: started
         enabled: true
 
   handlers:
-    - name: Restart filebeat
+    - name: Restart fluent-bit
       ansible.builtin.service:
-        name: filebeat
+        name: fluent-bit
         state: restarted
