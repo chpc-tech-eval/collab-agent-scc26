@@ -1,3 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wazuh-indexer-config
+  namespace: wazuh
+data:
+  opensearch.yml: |
+    cluster.name: wazuh-cluster
+    node.name: wazuh-indexer-0
+    network.host: 0.0.0.0
+    discovery.type: single-node
+    plugins.security.disabled: true
+    plugins.security.ssl.http.enabled: false
+    plugins.security.ssl.transport.enabled: false
+    path.data: /var/lib/wazuh-indexer
+    path.logs: /var/log/wazuh-indexer
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -29,23 +46,13 @@ spec:
         - name: wazuh-indexer
           image: wazuh/wazuh-indexer:4.14.1
           ports:
-            - name: https
+            - name: http
               containerPort: 9200
             - name: transport
               containerPort: 9300
           env:
             - name: OPENSEARCH_JAVA_OPTS
               value: "-Xms1g -Xmx1g"
-            - name: discovery.type
-              value: "single-node"
-            - name: plugins.security.disabled
-              value: "true"
-            - name: bootstrap.memory_lock
-              value: "false"
-            - name: cluster.name
-              value: "wazuh-cluster"
-            - name: node.name
-              value: "wazuh-indexer-0"
           resources:
             requests:
               cpu: 500m
@@ -56,11 +63,18 @@ spec:
             httpGet:
               path: /_cluster/health
               port: 9200
-            initialDelaySeconds: 30
+            initialDelaySeconds: 25
             periodSeconds: 10
           volumeMounts:
             - name: indexer-data
               mountPath: /var/lib/wazuh-indexer
+            - name: indexer-config
+              mountPath: /usr/share/wazuh-indexer/opensearch.yml
+              subPath: opensearch.yml
+      volumes:
+        - name: indexer-config
+          configMap:
+            name: wazuh-indexer-config
   volumeClaimTemplates:
     - metadata:
         name: indexer-data
