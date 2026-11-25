@@ -347,3 +347,76 @@
       ansible.builtin.service:
         name: suricata
         state: restarted
+
+- name: Configure Filebeat log shipper on edge
+  hosts: edge_nodes
+  become: true
+  tags:
+    - filebeat
+  tasks:
+    - name: Import Elastic GPG key for Filebeat
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+    - name: Configure Elastic 7.x OSS YUM repository for Filebeat
+      ansible.builtin.yum_repository:
+        name: elastic-7.x
+        description: Elastic repository for 7.x packages
+        baseurl: https://artifacts.elastic.co/packages/oss-7.x/yum
+        gpgcheck: true
+        gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        enabled: true
+
+    - name: Install Filebeat
+      ansible.builtin.dnf:
+        name: filebeat
+        state: present
+
+    - name: Configure Filebeat to ship Wazuh and Suricata alerts to Wazuh Indexer
+      ansible.builtin.copy:
+        dest: /etc/filebeat/filebeat.yml
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          filebeat.inputs:
+            - type: log
+              enabled: true
+              paths:
+                - /var/ossec/logs/alerts/alerts.json
+              json.keys_under_root: true
+              json.overwrite_keys: true
+              fields:
+                pipeline: wazuh-alerts
+              fields_under_root: true
+
+            - type: log
+              enabled: true
+              paths:
+                - /var/log/suricata/eve.json
+              json.keys_under_root: true
+              json.overwrite_keys: true
+              fields:
+                pipeline: suricata-eve
+              fields_under_root: true
+
+          output.elasticsearch:
+            hosts: ["http://172.26.1.21:30920"]
+            index: "wazuh-alerts-4.x-%{+yyyy.MM.dd}"
+
+          setup.template.enabled: false
+          setup.ilm.enabled: false
+      notify: Restart filebeat
+
+    - name: Enable and start Filebeat
+      ansible.builtin.service:
+        name: filebeat
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart filebeat
+      ansible.builtin.service:
+        name: filebeat
+        state: restarted
