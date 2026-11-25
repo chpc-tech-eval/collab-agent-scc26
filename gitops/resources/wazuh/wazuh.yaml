@@ -84,6 +84,20 @@ spec:
       port: 9200
       targetPort: 9200
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wazuh-dashboard-config
+  namespace: wazuh
+data:
+  opensearch_dashboards.yml: |
+    server.host: 0.0.0.0
+    server.port: 5601
+    server.ssl.enabled: false
+    opensearch.hosts: ["http://wazuh-indexer.wazuh.svc.cluster.local:9200"]
+    opensearch.ssl.verificationMode: none
+    opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -124,6 +138,10 @@ spec:
                 secretKeyRef:
                   name: wazuh-indexer-auth
                   key: password
+          volumeMounts:
+            - name: dashboard-config
+              mountPath: /usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
+              subPath: opensearch_dashboards.yml
           resources:
             requests:
               cpu: 250m
@@ -136,6 +154,10 @@ spec:
               port: 5601
             initialDelaySeconds: 25
             periodSeconds: 10
+      volumes:
+        - name: dashboard-config
+          configMap:
+            name: wazuh-dashboard-config
 ---
 apiVersion: v1
 kind: Service
