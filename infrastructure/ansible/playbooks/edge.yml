@@ -368,10 +368,11 @@
         gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
         enabled: true
 
-    - name: Install Filebeat
+    - name: Install Filebeat 7.10.2 (OpenSearch compatible)
       ansible.builtin.dnf:
-        name: filebeat
+        name: filebeat-7.10.2
         state: present
+        allow_downgrade: true
 
     - name: Configure Filebeat to ship Wazuh and Suricata alerts to Wazuh Indexer
       ansible.builtin.copy:
