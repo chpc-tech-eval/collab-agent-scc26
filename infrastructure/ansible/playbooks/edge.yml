@@ -17,9 +17,6 @@
     - name: pride-workstation
       public_key: "9xdI/ZBKtacUrxRH46Yc5+U7jXzbXf2VjutcN/qZAik="
       allowed_ips: "10.200.0.4/32"
-    - name: pride-workstation
-      public_key: "9xdI/ZBKtacUrxRH46Yc5+U7jXzbXf2VjutcN/qZAik="
-      allowed_ips: "10.200.0.4/32"
     wg_private_subnet: "172.26.1.0/24"
     dns_private_address: "172.26.0.10"
     dns_vpn_address: "10.200.0.1"
