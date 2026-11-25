@@ -322,7 +322,7 @@
         group: root
         mode: "0644"
         content: |
-          OPTIONS="-i {{ suricata_interface }} --user suricata"
+          OPTIONS="-i {{ suricata_interface }} -k none --user suricata"
       notify: Restart suricata
 
     - name: Configure Suricata HOME_NET and local.rules

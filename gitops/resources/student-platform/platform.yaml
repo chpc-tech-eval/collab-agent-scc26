@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-platform
+  namespace: student-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: student-platform
+  template:
+    metadata:
+      labels:
+        app: student-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+        - name: student-platform
+          image: ghcr.io/chpc-tech-eval/student-platform:sha-d476011
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: student-platform-secrets
+          env:
+            - name: TEAM_NAME
+              value: "CHPC SCC26 Team"
+            - name: PROJECT_SLUG
+              value: "collab-agent-scc26"
+            - name: PLATFORM_USER
+              value: "scc26-student"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-platform
+  namespace: student-platform
+spec:
+  selector:
+    app: student-platform
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: student-platform
+  namespace: student-platform
+  annotations:
+    cert-manager.io/cluster-issuer: scc26-internal-ca
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - platform.scc26.internal
+      secretName: student-platform-tls
+  rules:
+    - host: platform.scc26.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: student-platform
+                port:
+                  number: 80
