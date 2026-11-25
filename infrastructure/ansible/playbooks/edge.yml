@@ -284,6 +284,13 @@
           - suricata
         state: present
 
+    - name: Ensure GENEVE_PORTS is defined in suricata.yaml
+      ansible.builtin.lineinfile:
+        path: /etc/suricata/suricata.yaml
+        insertafter: "port-groups:"
+        line: "    GENEVE_PORTS: \"6081\""
+      notify: Restart suricata
+
     - name: Ensure local Suricata rules directory exists
       tags: [suricata]
       ansible.builtin.file:
