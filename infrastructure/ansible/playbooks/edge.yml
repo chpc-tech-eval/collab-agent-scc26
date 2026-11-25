@@ -302,6 +302,17 @@
         group: root
         mode: "0755"
 
+    - name: Ensure baseline suricata.rules file exists
+      tags: [suricata]
+      ansible.builtin.file:
+        path: /var/lib/suricata/rules/suricata.rules
+        state: touch
+        owner: root
+        group: root
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
     - name: Install benign local IDS test rule
       tags: [suricata]
       ansible.builtin.copy:
