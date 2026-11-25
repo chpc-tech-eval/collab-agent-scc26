@@ -17,8 +17,6 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/port: "8000"
     spec:
-      imagePullSecrets:
-        - name: ghcr-pull-secret
       containers:
         - name: student-platform
           image: ghcr.io/chpc-tech-eval/student-platform:sha-d476011
