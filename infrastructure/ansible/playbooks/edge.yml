@@ -290,6 +290,8 @@
         insertafter: "port-groups:"
         line: "    GENEVE_PORTS: \"6081\""
       notify: Restart suricata
+      tags:
+        - suricata
 
     - name: Ensure local Suricata rules directory exists
       tags: [suricata]
