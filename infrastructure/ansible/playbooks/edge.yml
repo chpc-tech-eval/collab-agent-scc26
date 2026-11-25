@@ -311,7 +311,7 @@
         mode: "0644"
         content: |
           # Benign test rule for authorised Week-3 IDS verification
-          alert http any any -> any any (msg:"SCC26 Authorised IDS Test Request"; content:"X-SCC26-IDS-Test"; http_header; sid:9000001; rev:1;)
+          alert tcp any any -> any any (msg:"SCC26 Authorised IDS Test Request"; content:"X-SCC26-IDS-Test"; sid:9000001; rev:2;)
       notify: Restart suricata
 
     - name: Configure Suricata sysconfig interface
