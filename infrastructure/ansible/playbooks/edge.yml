@@ -325,6 +325,14 @@
           OPTIONS="-i {{ suricata_interface }} -k none --user suricata"
       notify: Restart suricata
 
+    - name: Remove legacy duplicate SCC26 IDS block from suricata.yaml
+      tags: [suricata]
+      ansible.builtin.blockinfile:
+        path: /etc/suricata/suricata.yaml
+        marker: "# {mark} ANSIBLE MANAGED SCC26 IDS"
+        state: absent
+      notify: Restart suricata
+
     - name: Register local.rules in primary Suricata rule-files list
       tags: [suricata]
       ansible.builtin.lineinfile:
