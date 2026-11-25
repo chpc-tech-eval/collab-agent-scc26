@@ -408,6 +408,7 @@
 
           setup.template.enabled: false
           setup.ilm.enabled: false
+          seccomp.enabled: false
       notify: Restart filebeat
 
     - name: Enable and start Filebeat
