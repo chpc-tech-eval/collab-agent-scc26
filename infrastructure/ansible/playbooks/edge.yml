@@ -325,18 +325,12 @@
           OPTIONS="-i {{ suricata_interface }} -k none --user suricata"
       notify: Restart suricata
 
-    - name: Configure Suricata HOME_NET and local.rules
+    - name: Register local.rules in primary Suricata rule-files list
       tags: [suricata]
-      ansible.builtin.blockinfile:
+      ansible.builtin.lineinfile:
         path: /etc/suricata/suricata.yaml
-        marker: "# {mark} ANSIBLE MANAGED SCC26 IDS"
-        block: |
-          vars:
-            address-groups:
-              HOME_NET: "{{ suricata_home_net }}"
-          default-rule-path: /var/lib/suricata/rules
-          rule-files:
-            - local.rules
+        insertafter: "^rule-files:"
+        line: "  - /var/lib/suricata/rules/local.rules"
       notify: Restart suricata
 
     - name: Validate Suricata configuration
